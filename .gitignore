@@ -1,0 +1,6 @@
+coverage
+.eslintcache
+.idea
+lib
+node_modules
+.nyc_output
