@@ -2,7 +2,8 @@
 
 import assert from 'assert'
 import fs from 'fs-extra'
-import {spawn} from 'promisify-child-process'
+
+import {spawn} from './spawn'
 
 import randomstring from 'randomstring'
 
@@ -52,11 +53,11 @@ export async function writeFile(file: string, fileContents: string, opts: WriteF
     if (sudo) {
       const writePath = `/tmp/${randomstring.generate(16)}`
       fs.writeFileSync(writePath, fileContents)
-      await spawn('sudo', ['mv', writePath, file], {stdio: 'inherit'})
+      await spawn('mv', [writePath, file], {sudo})
     } else {
       await fs.writeFile(file, fileContents)
     }
   }
-  await spawn(sudo ? 'sudo' : 'chmod', [...(sudo ? ['chmod'] : []), opts.mode || '644', file], {stdio: 'inherit'})
+  await spawn('chmod', [opts.mode || '644', file], {sudo})
   return !matches
 }
