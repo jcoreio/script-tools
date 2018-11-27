@@ -1,8 +1,13 @@
 // @Flow
 
 import {spawn as baseSpawn} from 'promisify-child-process'
+import type {SpawnOpts as BaseSpawnOpts, ChildProcessPromise} from 'promisify-child-process'
 
-export const spawn = (command: string, args: Array<any> | Object | void, options: Object | void) => {
+export type SpawnOpts = BaseSpawnOpts & {
+  sudo?: ?boolean,
+}
+
+export function spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
   if (!Array.isArray(args)) {
     options = args
     args = []
