@@ -14,28 +14,12 @@ export function execRemote({host, user, keyFile, command, strictHostKeyChecking,
   spawnOpts?: ?SpawnOpts,
 }): ChildProcessPromise {
   const baseSpawnOpts = {
-    ...(prefix ? {stdio: 'pipe'} : {}),
-    ...(spawnOpts || {}),
+    ...(prefix ? {prefix} : {}),
+    ...(spawnOpts || {})
   }
-
-  const child: ChildProcessPromise = spawn('ssh', ['-t', '-t',
+  return spawn('ssh', ['-t', '-t',
     ...(strictHostKeyChecking ? [] : ['-o', 'StrictHostKeyChecking=no']),
     ...(user ? ['-l', user] : []),
     ...(keyFile ? ['-i', keyFile] : []),
     host, command], baseSpawnOpts)
-
-  if (prefix) {
-    const forward = (src: ?stream$Readable, dest: stream$Writable) => {
-      if (src) {
-        src.on('data', (data: string | Buffer) => {
-          dest.write(prefix, 'utf8')
-          dest.write(data)
-        })
-      }
-    }
-    forward(child.stdout, process.stdout)
-    forward(child.stderr, process.stderr)
-  }
-
-  return child
 }
