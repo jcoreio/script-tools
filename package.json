@@ -106,6 +106,7 @@
     "fs-extra": "^7.0.1",
     "node-cleanup": "^2.1.2",
     "promisify-child-process": "^3.1.0",
-    "randomstring": "^1.1.5"
+    "randomstring": "^1.1.5",
+    "verror": "^1.10.0"
   }
 }
