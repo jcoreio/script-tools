@@ -1,5 +1,6 @@
 // @flow
 
+import chalk from 'chalk'
 import type { ChildProcess } from 'child_process'
 import { exec as baseExec, type ChildProcessPromise } from 'promisify-child-process'
 import { VError } from 'verror'
@@ -23,34 +24,22 @@ export class ProcessHandler {
   }
 
   exec(command: string, options?: child_process$execOpts): ChildProcessPromise {
-    this._maybePrintCommand(`+ ${command}`)
+    this._maybePrintCommand(command)
     const child = baseExec(command, options)
-    this.killOnExit(child)
-    child.catch((err: Error) => {
-      throw new VError(err, `exec failed: ${command}`)
-    })
-    return child
+    return this._wrapPromise(child, (err: Error) => new VError(err, `exec failed: ${command}`))
   }
 
   execRemote(args: ExecRemoteArgs): ChildProcessPromise {
-    this._maybePrintCommand(`+ host: ${args.host} command: ${args.command}`)
+    this._maybePrintCommand(`host: ${args.host} command: ${args.command}`)
     const child = baseExecRemote(args)
-    this.killOnExit(child)
-    child.catch((err: Error) => {
-      throw new VError(err, `execRemote on host ${args.host} failed: ${args.command}`)
-    })
-    return child
+    return this._wrapPromise(child, (err: Error) => new VError(err, `execRemote on host ${args.host} failed: ${args.command}`))
   }
 
   spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
     const commandAndArgs = `${command}${args && args.length ? ' ' + args.join(' ') : ''}`
-    this._maybePrintCommand(`+ ${commandAndArgs}`)
+    this._maybePrintCommand(commandAndArgs)
     const child = baseSpawn(command, args, options)
-    this.killOnExit(child)
-    child.catch((err: Error) => {
-      throw new VError(err, `spawn failed: ${commandAndArgs}`)
-    })
-    return child
+    return this._wrapPromise(child, (err: Error) => new VError(err, `spawn failed: ${commandAndArgs}`))
   }
 
   killOnExit(child: ChildProcess) {
@@ -75,9 +64,19 @@ export class ProcessHandler {
     this._runningProcesses.clear()
   }
 
-  _maybePrintCommand(...args: Array<any>) {
+  _maybePrintCommand(command: string) {
     if (this._printCommands)
-      console.log(...args)
+      console.log(chalk.gray(`+ ${command}`))
   }
 
+  _wrapPromise(child: ChildProcessPromise, transformError: (err: Error) => Error): ChildProcessPromise {
+    this.killOnExit(child)
+    const wrappedPromise = child.catch((err: Error) => {
+      throw transformError(err)
+    })
+    return (Object.create((child: any), {
+      then: { value: wrappedPromise.then.bind(wrappedPromise) },
+      catch: { value: wrappedPromise.catch.bind(wrappedPromise) },
+    }): any)
+  }
 }
