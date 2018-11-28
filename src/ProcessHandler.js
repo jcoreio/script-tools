@@ -36,7 +36,7 @@ export class ProcessHandler {
   }
 
   spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
-    const commandAndArgs = `${command}${args && args.length ? ' ' + args.join(' ') : ''}`
+    const commandAndArgs = `${options.sudo ? 'sudo ' : ''}${command}${args && args.length ? ' ' + args.join(' ') : ''}`
     this._maybePrintCommand(commandAndArgs)
     const child = baseSpawn(command, args, options)
     return this._wrapPromise(child, (err: Error) => new VError(err, `spawn failed: ${commandAndArgs}`))
