@@ -21,6 +21,7 @@ export function spawn(command: string, args: Array<any> | Object | void, options
   }
   const child = baseSpawn(command, args, {
     stdio: prefix ? 'pipe' : 'inherit',
+    encoding: 'utf8',
     ...optsForSpawn,
   })
   if (prefix) {
