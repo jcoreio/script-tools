@@ -26,20 +26,20 @@ export class ProcessHandler {
   exec(command: string, options?: child_process$execOpts): ChildProcessPromise {
     this._maybePrintCommand(command)
     const child = baseExec(command, options)
-    return this._wrapPromise(child, (err: Error) => new VError(err, `exec failed: ${command}`))
+    return this._wrapPromise(child, `exec failed: ${command}`)
   }
 
   execRemote(args: ExecRemoteArgs): ChildProcessPromise {
     this._maybePrintCommand(`host: ${args.host} command: ${args.command}`)
     const child = baseExecRemote(args)
-    return this._wrapPromise(child, (err: Error) => new VError(err, `execRemote on host ${args.host} failed: ${args.command}`))
+    return this._wrapPromise(child, `execRemote on host ${args.host} failed: ${args.command}`)
   }
 
   spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
     const commandAndArgs = `${options.sudo ? 'sudo ' : ''}${command}${args && args.length ? ' ' + args.join(' ') : ''}`
     this._maybePrintCommand(commandAndArgs)
     const child = baseSpawn(command, args, options)
-    return this._wrapPromise(child, (err: Error) => new VError(err, `spawn failed: ${commandAndArgs}`))
+    return this._wrapPromise(child, `spawn failed: ${commandAndArgs}`)
   }
 
   killOnExit(child: ChildProcess) {
@@ -69,10 +69,15 @@ export class ProcessHandler {
       console.log(chalk.gray(`+ ${command}`))
   }
 
-  _wrapPromise(child: ChildProcessPromise, transformError: (err: Error) => Error): ChildProcessPromise {
+  _wrapPromise(child: ChildProcessPromise, errMsg: string): ChildProcessPromise {
     this.killOnExit(child)
     const wrappedPromise = child.catch((err: Error) => {
-      throw transformError(err)
+      const wrappedErr = new VError(err, errMsg)
+      for (let key of ['code', 'signal', 'stdout', 'stderr']) {
+        if (err.hasOwnProperty(key))
+          wrappedErr[key] = (err: any)[key]
+      }
+      throw wrappedErr
     })
     return (Object.create((child: any), {
       then: { value: wrappedPromise.then.bind(wrappedPromise) },
