@@ -1,14 +1,13 @@
 // @flow
 
-import chalk from 'chalk'
 import type { ChildProcess } from 'child_process'
-import { exec as baseExec, type ChildProcessPromise } from 'promisify-child-process'
-import { VError } from 'verror'
+import type { ChildProcessPromise } from 'promisify-child-process'
 
 import nodeCleanup from 'node-cleanup'
 
-import { spawn as baseSpawn, type SpawnOpts } from './spawn'
+import { exec as baseExec } from './exec'
 import { execRemote as baseExecRemote, type ExecRemoteArgs } from './execRemote'
+import { spawn as baseSpawn, type SpawnOpts } from './spawn'
 
 export class ProcessHandler {
 
@@ -16,30 +15,27 @@ export class ProcessHandler {
   _cleanupHandlerInstalled: boolean = false
   _curId: number = 0
   _maxProcesses: number
-  _printCommands: boolean
 
-  constructor({maxProcesses, printCommands}: {maxProcesses?: ?number, printCommands?: ?boolean} = {}) {
+  constructor({maxProcesses}: {maxProcesses?: ?number} = {}) {
     this._maxProcesses = maxProcesses || 100
-    this._printCommands = !!printCommands
   }
 
   exec(command: string, options?: child_process$execOpts): ChildProcessPromise {
-    this._maybePrintCommand(command)
     const child = baseExec(command, options)
-    return this._wrapPromise(child, `exec failed: ${command}`)
+    this.killOnExit(child)
+    return child
   }
 
   execRemote(args: ExecRemoteArgs): ChildProcessPromise {
-    this._maybePrintCommand(`host: ${args.host} command: ${args.command}`)
     const child = baseExecRemote(args)
-    return this._wrapPromise(child, `execRemote on host ${args.host} failed: ${args.command}`)
+    this.killOnExit(child)
+    return child
   }
 
   spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
-    const commandAndArgs = `${options.sudo ? 'sudo ' : ''}${command}${args && args.length ? ' ' + args.join(' ') : ''}`
-    this._maybePrintCommand(commandAndArgs)
     const child = baseSpawn(command, args, options)
-    return this._wrapPromise(child, `spawn failed: ${commandAndArgs}`)
+    this.killOnExit(child)
+    return child
   }
 
   killOnExit(child: ChildProcess) {
@@ -62,26 +58,5 @@ export class ProcessHandler {
       child.kill()
     }
     this._runningProcesses.clear()
-  }
-
-  _maybePrintCommand(command: string) {
-    if (this._printCommands)
-      console.log(chalk.gray(`+ ${command}`))
-  }
-
-  _wrapPromise(child: ChildProcessPromise, errMsg: string): ChildProcessPromise {
-    this.killOnExit(child)
-    const wrappedPromise = child.catch((err: Error) => {
-      const wrappedErr = new VError(err, errMsg)
-      for (let key of ['code', 'signal', 'stdout', 'stderr']) {
-        if (err.hasOwnProperty(key))
-          wrappedErr[key] = (err: any)[key]
-      }
-      throw wrappedErr
-    })
-    return (Object.create((child: any), {
-      then: { value: wrappedPromise.then.bind(wrappedPromise) },
-      catch: { value: wrappedPromise.catch.bind(wrappedPromise) },
-    }): any)
   }
 }

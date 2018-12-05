@@ -1,5 +1,6 @@
 // @flow
 
+export {exec} from './exec'
 export {execRemote} from './execRemote'
 
 export {ProcessHandler} from './ProcessHandler'
