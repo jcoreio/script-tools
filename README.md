@@ -64,6 +64,8 @@ Options:
 - `newLineAtEnd`: boolean, optional: true if the file should have a newline at the end. Defaults to true.
 - `sudo`: boolean, optional: true if sudo should be used when writing the file. Defaults to false.
 - `mode`: string, optional: file permissions to set, e.g. `'775'`
+- `owner`: string, optional: file owner to set
+- `group`: string, optional: file group to set
 
 ```js
 const {lineInFile} = require('@jcoreio/script-tools')
@@ -73,6 +75,8 @@ await lineInFile({
   line: 'maxWorkers = 2',
   replace: 'maxWorkers', 
   sudo: true,
+  owner: 'root',
+  group: 'root',
 })
 ```
 
@@ -107,11 +111,13 @@ Arguments:
 - `options`: Object, optional:
   - `sudo`: boolean, optional: true if sudo should be used when writing the file. Defaults to false.
   - `mode`: string, optional: file permissions to set, e.g. `'775'`
+  - `owner`: string, optional: file owner to set
+  - `group`: string, optional: file group to set
 
 ```js
 const {writeFile} = require('@jcoreio/script-tools')
 
-await writeFile('.gitignore', 'node_modules', {mode: '775'})
+await writeFile('.gitignore', 'node_modules', {mode: '775', owner: 'root', group: 'root'})
 ```
 
 ## `ProcessHandler` class
