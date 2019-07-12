@@ -3,9 +3,13 @@
 import assert from 'assert'
 import fs from 'fs-extra'
 
+import {exec} from 'promisify-child-process'
+
 import {spawn} from './spawn'
 
 import randomstring from 'randomstring'
+
+const tempFilePath = () => `/tmp/${randomstring.generate(16)}`
 
 export type OwnershipOpts = {
   owner?: string,
@@ -52,16 +56,30 @@ export type WriteFileOpts = {
 } & OwnershipOpts
 
 export async function writeFile(file: string, fileContents: string, opts: WriteFileOpts = {}): Promise<boolean> {
-  const matches = await fs.pathExists(file) && (await fs.readFile(file, 'utf8')) === fileContents
+  let matches = false
   const {sudo, owner, group, mode} = opts
-  if (!matches) {
-    if (sudo) {
-      const writePath = `/tmp/${randomstring.generate(16)}`
+  if (sudo) {
+    if (await fs.pathExists(file)) {
+      const readPath = tempFilePath()
+      // Make a copy and ensure we have permission to read it, since the target file may
+      // require root permissions to read
+      await spawn('cp', [file, readPath], {sudo})
+      // $FlowFixMe: ok to await result of exec
+      const username = (await exec('whoami')).stdout.trim()
+      if (username) {
+        await applyOwnershipAndPermissions({path: readPath, owner: username, mode: '400', sudo})
+      }
+      matches = await fs.readFile(readPath, 'utf8') === fileContents
+      await fs.remove(readPath)
+    }
+    if (!matches) {
+      const writePath = tempFilePath()
       fs.writeFileSync(writePath, fileContents)
       await spawn('mv', [writePath, file], {sudo})
-    } else {
-      await fs.writeFile(file, fileContents)
     }
+  } else {
+    matches = await fs.pathExists(file) && (await fs.readFile(file, 'utf8')) === fileContents
+    await fs.writeFile(file, fileContents)
   }
   await applyOwnershipAndPermissions({
     path: file,
@@ -85,3 +103,4 @@ async function applyOwnershipAndPermissions(args: {
   if (mode)
     await spawn('chmod', [mode, path], {sudo})
 }
+
