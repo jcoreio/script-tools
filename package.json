@@ -94,7 +94,7 @@
     "mocha": "^4.1.0",
     "nyc": "^11.4.1",
     "rimraf": "^2.6.0",
-    "semantic-release": "^15.12.1"
+    "semantic-release": "^17.2.3"
   },
   "publishConfig": {
     "access": "public"
