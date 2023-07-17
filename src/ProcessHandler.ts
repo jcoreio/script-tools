@@ -1,26 +1,24 @@
-// @flow
-
-import type { ChildProcess } from 'child_process'
+import type { ChildProcess, ExecOptions } from 'child_process'
 import type { ChildProcessPromise } from 'promisify-child-process'
-
 import nodeCleanup from 'node-cleanup'
-
 import { exec as baseExec } from './exec'
-import { execRemote as baseExecRemote, type ExecRemoteArgs } from './execRemote'
-import { spawn as baseSpawn, type SpawnOpts } from './spawn'
-
+import { execRemote as baseExecRemote, ExecRemoteArgs } from './execRemote'
+import { spawn as baseSpawn, SpawnOpts } from './spawn'
 export class ProcessHandler {
-
   _runningProcesses: Map<number, ChildProcess> = new Map()
-  _cleanupHandlerInstalled: boolean = false
-  _curId: number = 0
+  _cleanupHandlerInstalled = false
+  _curId = 0
   _maxProcesses: number
 
-  constructor({maxProcesses}: {maxProcesses?: ?number} = {}) {
+  constructor({
+    maxProcesses,
+  }: {
+    maxProcesses?: number | null | undefined
+  } = {}) {
     this._maxProcesses = maxProcesses || 100
   }
 
-  exec(command: string, options?: child_process$execOpts): ChildProcessPromise {
+  exec(command: string, options?: ExecOptions): ChildProcessPromise {
     const child = baseExec(command, options)
     this.killOnExit(child)
     return child
@@ -32,7 +30,11 @@ export class ProcessHandler {
     return child
   }
 
-  spawn(command: string, args: Array<any> | Object | void, options: SpawnOpts = {}): ChildProcessPromise {
+  spawn(
+    command: string,
+    args?: Array<any> | any,
+    options: SpawnOpts = {}
+  ): ChildProcessPromise {
     const child = baseSpawn(command, args, options)
     this.killOnExit(child)
     return child
@@ -42,7 +44,9 @@ export class ProcessHandler {
     if (this._runningProcesses.size >= this._maxProcesses) {
       child.kill()
       this.killAll()
-      throw Error(`exceeded ${this._maxProcesses} simultaneous running processes, terminating all child processes`)
+      throw Error(
+        `exceeded ${this._maxProcesses} simultaneous running processes, terminating all child processes`
+      )
     }
     if (!this._cleanupHandlerInstalled) {
       nodeCleanup(() => this.killAll())
@@ -54,9 +58,10 @@ export class ProcessHandler {
   }
 
   killAll() {
-    for (const child: ChildProcess of this._runningProcesses.values()) {
+    for (const child of this._runningProcesses.values()) {
       child.kill()
     }
+
     this._runningProcesses.clear()
   }
 }
