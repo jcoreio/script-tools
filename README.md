@@ -4,7 +4,7 @@ Helpers for common scripting tasks like modifying configuration files
 
 ## Installation
 
-`npm install --save @jcoreio/script-tools`
+`pnpm install --save @jcoreio/script-tools`
 
 or
 
