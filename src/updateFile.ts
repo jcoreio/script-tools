@@ -3,6 +3,7 @@ import fs from 'fs-extra'
 import { exec } from 'promisify-child-process'
 import { spawn } from './spawn'
 import randomstring from 'randomstring'
+import { EncodingOption } from 'fs'
 
 const tempFilePath = () => `/tmp/${randomstring.generate(16)}`
 
@@ -52,14 +53,15 @@ export async function lineInFile(opts: LineInFileOpts): Promise<boolean> {
 }
 export type WriteFileOpts = {
   sudo?: boolean
+  encoding?: EncodingOption
 } & OwnershipOpts
 export async function writeFile(
   file: string,
-  fileContents: string,
+  fileContents: string | Buffer,
   opts: WriteFileOpts = {}
 ): Promise<boolean> {
   let matches = false
-  const { sudo, owner, group, mode } = opts
+  const { sudo, owner, group, mode, encoding = 'utf8' } = opts
   if (sudo) {
     if (await fs.pathExists(file)) {
       const readPath = tempFilePath()
@@ -75,19 +77,19 @@ export async function writeFile(
           sudo,
         })
       }
-      matches = (await fs.readFile(readPath, 'utf8')) === fileContents
+      matches = (await fs.readFile(readPath, encoding)) === fileContents
       await fs.remove(readPath)
     }
     if (!matches) {
       const writePath = tempFilePath()
-      fs.writeFileSync(writePath, fileContents)
+      fs.writeFileSync(writePath, fileContents, encoding)
       await spawn('mv', [writePath, file], { sudo })
     }
   } else {
     matches =
       (await fs.pathExists(file)) &&
-      (await fs.readFile(file, 'utf8')) === fileContents
-    await fs.writeFile(file, fileContents)
+      (await fs.readFile(file, encoding)) === fileContents
+    await fs.writeFile(file, fileContents, encoding)
   }
   await applyOwnershipAndPermissions({
     path: file,

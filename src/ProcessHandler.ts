@@ -30,11 +30,18 @@ export class ProcessHandler {
     return child
   }
 
+  spawn(command: string, options?: SpawnOpts): ChildProcessPromise
   spawn(
     command: string,
-    args?: Array<any> | any,
-    options: SpawnOpts = {}
+    args?: string[],
+    options?: SpawnOpts
+  ): ChildProcessPromise
+  spawn(
+    command: string,
+    args?: string[] | SpawnOpts,
+    options?: SpawnOpts
   ): ChildProcessPromise {
+    // @ts-expect-error is actually valid
     const child = baseSpawn(command, args, options)
     this.killOnExit(child)
     return child

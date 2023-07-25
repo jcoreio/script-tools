@@ -11,10 +11,16 @@ export type SpawnOpts = BaseSpawnOpts & {
   prefix?: string | null | undefined
   captureStdio?: boolean | null | undefined
 }
+export function spawn(command: string, options?: SpawnOpts): ChildProcessPromise
 export function spawn(
   command: string,
-  args?: Array<any> | any,
-  options: SpawnOpts = {}
+  args?: string[],
+  options?: SpawnOpts
+): ChildProcessPromise
+export function spawn(
+  command: string,
+  args?: string[] | SpawnOpts,
+  options?: SpawnOpts
 ): ChildProcessPromise {
   if (!Array.isArray(args)) {
     options = args
