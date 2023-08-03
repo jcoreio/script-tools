@@ -49,9 +49,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "release": {
-    "verifyConditions": "condition-circle"
-  },
   "dependencies": {
     "@babel/runtime": "^7.18.6",
     "chalk": "^2.4.1",
